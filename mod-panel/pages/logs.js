@@ -6,8 +6,7 @@ import ActionHistory from '../src/components/ActionHistory'
 // Hier nutzen wir die Next.js API-Route, um die Daten zu laden
 export async function getServerSideProps() {
   try {
-    // Rufe die Daten direkt über die API-Route ab, um die Datenbank-Funktion zu nutzen
-    // Auf Vercel/localhost ist dies der interne Weg, um das Backend zu nutzen
+    // Dynamischer Import, um sicherzustellen, dass getAllActions nur auf dem Server geladen wird
     const { getAllActions } = await import('../src/lib/data');
     const actions = await getAllActions();
     

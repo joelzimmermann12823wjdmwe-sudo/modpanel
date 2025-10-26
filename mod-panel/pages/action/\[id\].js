@@ -8,6 +8,8 @@ import { formatDateTime } from '../../src/lib/dayjs-config'
 export async function getServerSideProps(context) {
   const { id } = context.params
   try {
+    // Dynamischer Import, um sicherzustellen, dass getActionById nur auf dem Server geladen wird
+    const { getActionById } = await import('../../src/lib/data');
     const action = await getActionById(id)
     
     if (!action) {
@@ -75,7 +77,7 @@ const ActionDetail = ({ action }) => {
           <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl text-center">
              <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-500" />
              <h2 className="text-2xl font-bold dark:text-white">Aktion nicht gefunden</h2>
-             <p className="text-gray-500 dark:text-gray-400">Der gesuchte Moderationsbericht mit der ID **{context.query.id}** existiert nicht.</p>
+             <p className="text-gray-500 dark:text-gray-400">Der gesuchte Moderationsbericht existiert nicht.</p>
           </div>
         )}
       </div>
