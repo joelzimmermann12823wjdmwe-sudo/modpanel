@@ -1,0 +1,15 @@
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.stat-card {
+  @apply bg-white rounded-lg shadow-md p-6 border-l-4;
+}
+
+.stat-card-verbal { @apply border-yellow-400; }
+.stat-card-warn { @apply border-orange-400; }
+.stat-card-kick { @apply border-red-400; }
+.stat-card-ban1 { @apply border-pink-400; }
+.stat-card-ban-perma { @apply border-purple-400; }
