@@ -1,9 +1,0 @@
-.history-item {
-  @apply border-l-4 pl-4 py-3 transition-colors hover:bg-gray-50;
-}
-
-.history-item-verbal { @apply border-yellow-400; }
-.history-item-warn { @apply border-orange-400; }
-.history-item-kick { @apply border-red-400; }
-.history-item-ban1 { @apply border-pink-400; }
-.history-item-ban-perma { @apply border-purple-400; }
