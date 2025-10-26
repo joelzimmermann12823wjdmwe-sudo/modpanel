@@ -1,60 +1,72 @@
-import fs from 'fs'
-import path from 'path'
+import { createClient } from '@vercel/kv'
+import 'server-only' // Stellt sicher, dass dieses Modul nur auf dem Server läuft
 
-const dataPath = path.join(process.cwd(), 'src', 'data', 'data.json')
+// Initialisiere Vercel KV Client
+const kv = createClient({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
-// Stellt sicher, dass der Datenordner existiert
-if (!fs.existsSync(path.dirname(dataPath))) {
-  fs.mkdirSync(path.dirname(dataPath), { recursive: true })
-}
+const KV_KEY = 'mod_actions';
 
 /**
- * Liest alle Aktionen aus der data.json-Datei.
- * @returns {Array} Liste der Moderationsaktionen.
+ * Ruft alle Aktionen ab und sortiert sie nach Zeitstempel.
+ * @returns {Promise<Array>} Liste der Moderationsaktionen.
  */
 export async function getAllActions() {
-  if (!fs.existsSync(dataPath)) {
-    return []
-  }
   try {
-    const data = await fs.promises.readFile(dataPath, 'utf-8')
-    return JSON.parse(data).mod_actions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    const data = await kv.get(KV_KEY);
+    const actions = Array.isArray(data) ? data : [];
+    // Sortiere nach Zeitstempel absteigend (neueste zuerst)
+    return actions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   } catch (error) {
-    // Wenn die Datei korrupt oder leer ist, gib ein leeres Array zurück
-    return []
+    console.error("KV getAllActions Error:", error);
+    return [];
   }
 }
 
 /**
- * Speichert eine neue Aktion in die data.json-Datei.
+ * Speichert eine neue Aktion in Vercel KV.
+ * Nutzt Server Actions für die Mutation.
  * @param {object} newAction - Die neue Moderationsaktion.
- * @returns {object} Die gespeicherte Aktion mit ID und Zeitstempel.
+ * @returns {Promise<object>} Die gespeicherte Aktion mit ID und Zeitstempel.
  */
 export async function saveAction(newAction) {
-  const actions = await getAllActions()
-  
-  // Generiere eine neue ID (größte ID + 1)
-  const newId = actions.length > 0 ? (Math.max(...actions.map(a => parseInt(a.id))) + 1).toString() : '1'
+  'use server'
 
-  // Füge benötigte Metadaten hinzu
-  const actionWithMeta = {
-    ...newAction,
-    id: newId,
-    timestamp: new Date().toISOString(),
+  try {
+    const actions = await getAllActions();
+    
+    // Generiere eine neue ID (größte ID + 1)
+    const newId = actions.length > 0 ? (Math.max(...actions.map(a => parseInt(a.id || 0))) + 1).toString() : '1'
+
+    const actionWithMeta = {
+      ...newAction,
+      id: newId,
+      timestamp: new Date().toISOString(),
+    }
+
+    // Füge die neue Aktion am Anfang ein
+    actions.unshift(actionWithMeta) 
+    
+    // Speichere die gesamte Liste zurück in KV
+    await kv.set(KV_KEY, actions)
+    
+    // Wir müssen revalidatePath aufrufen, um die Server Components zu aktualisieren
+    // import { revalidatePath } from 'next/cache' muss in der Datei sein, die aufgerufen wird
+    // Dies wird in der ActionForm übernommen
+    
+    return { success: true, action: actionWithMeta };
+  } catch (error) {
+    console.error("KV saveAction Error:", error);
+    return { success: false, error: 'Speichern fehlgeschlagen.' };
   }
-
-  actions.unshift(actionWithMeta) // Füge die neue Aktion oben ein (neueste zuerst)
-
-  const dataToWrite = JSON.stringify({ mod_actions: actions }, null, 2)
-  await fs.promises.writeFile(dataPath, dataToWrite, 'utf-8')
-
-  return actionWithMeta
 }
 
 /**
  * Ruft eine einzelne Aktion anhand ihrer ID ab.
  * @param {string} id - Die ID der Aktion.
- * @returns {object|null} Die Aktion oder null, wenn nicht gefunden.
+ * @returns {Promise<object|null>} Die Aktion oder null, wenn nicht gefunden.
  */
 export async function getActionById(id) {
   const actions = await getAllActions()

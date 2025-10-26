@@ -1,3 +1,4 @@
+'use client'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Search, Hash, Clock, User, MessageSquare, AlertTriangle, ChevronRight } from 'lucide-react'
@@ -14,7 +15,7 @@ const actionStyles = {
 export default function ActionHistory({ actions }) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Filtern der Aktionen basierend auf dem Suchbegriff (Anforderung 5)
+  // Filtern der Aktionen basierend auf dem Suchbegriff
   const filteredActions = useMemo(() => {
     if (!searchTerm) {
       return actions
@@ -24,7 +25,6 @@ export default function ActionHistory({ actions }) {
       action.username.toLowerCase().includes(lowerCaseSearch) ||
       action.actionType.toLowerCase().includes(lowerCaseSearch) ||
       action.reason.toLowerCase().includes(lowerCaseSearch) ||
-      // Suche nach Datum (wenn Suchbegriff ein Datum sein könnte)
       formatDateTime(action.timestamp).toLowerCase().includes(lowerCaseSearch)
     )
   }, [actions, searchTerm])
@@ -45,7 +45,7 @@ export default function ActionHistory({ actions }) {
         Protokoll Historie
       </h2>
       
-      {/* Suchleiste (Anforderung 5) */}
+      {/* Suchleiste */}
       <div className="mb-6 relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
@@ -59,15 +59,13 @@ export default function ActionHistory({ actions }) {
 
       <div className="space-y-4">
         {filteredActions.map((action) => (
-          // Link zum Detail-Bericht (Anforderung 4)
           <Link 
             key={action.id} 
-            href={`/action/${action.id}`} 
+            href={`/logs/${action.id}`} 
             passHref
             className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-[1.01] hover:shadow-lg ${actionStyles[action.actionType] || 'bg-gray-100 dark:bg-gray-700'}`}
           >
             <div className="flex-1 min-w-0">
-              {/* Hauptinformationen */}
               <div className="font-semibold text-lg truncate">
                 {action.username}
                 <span className="ml-3 inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm border border-gray-200 dark:border-gray-600">
@@ -75,7 +73,6 @@ export default function ActionHistory({ actions }) {
                 </span>
               </div>
               
-              {/* Sekundärinformationen */}
               <div className="mt-1 text-sm text-gray-600 dark:text-gray-400 flex items-center space-x-3">
                 <span className="flex items-center">
                   <User className="w-4 h-4 mr-1" /> {action.moderator}
@@ -86,13 +83,12 @@ export default function ActionHistory({ actions }) {
               </div>
             </div>
 
-            {/* Zeitstempel & Pfeil */}
             <div className="flex flex-col items-end min-w-[150px] ml-4">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {formatRelativeTime(action.timestamp)} {/* Fix: Relative Zeit */}
+                {formatRelativeTime(action.timestamp)}
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-1">
-                <Clock className="w-3 h-3 mr-1" /> {formatDateTime(action.timestamp)} {/* Fix: Absolutes Datum/Uhrzeit */}
+                <Clock className="w-3 h-3 mr-1" /> {formatDateTime(action.timestamp)}
               </span>
             </div>
             <ChevronRight className="w-6 h-6 ml-3 text-gray-400" />
@@ -106,7 +102,7 @@ export default function ActionHistory({ actions }) {
 
       <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-between text-xs">
         <p className="text-gray-500 dark:text-gray-400 flex items-center">
-          🕒 Alle Zeitangaben in **Berliner Zeit** ({formatDateTime(new Date().toISOString()).split(',')[1].trim()})
+          🕒 Alle Zeitangaben in **Berliner Zeit**
         </p>
         <p className="text-gray-500 dark:text-gray-400">
           Gefunden: {filteredActions.length} / {actions.length} Einträge

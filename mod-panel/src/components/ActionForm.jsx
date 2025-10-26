@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { Send, User, MessageSquare, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+'use client'
+import { useState, useTransition } from 'react'
+import { Send, User, MessageSquare, AlertTriangle, CheckCircle, Clock, FileText } from 'lucide-react'
+import { saveAction } from '../lib/data' 
+import { revalidatePath } from 'next/cache' // Muss hier importiert werden, da es in der Server Action verwendet wird
 
-// Optionen für die Moderations-Aktion
+// Optionen
 const ACTION_TYPES = [
   'Mündliche Verwarnung',
   'Warnung',
@@ -10,7 +13,6 @@ const ACTION_TYPES = [
   'Permanenter Bann',
 ]
 
-// Häufige Gründe
 const REASONS = [
   'Spam',
   'Beleidigung',
@@ -20,69 +22,59 @@ const REASONS = [
   'Regelverstoß (Allgemein)',
 ]
 
-export default function ActionForm({ onSuccess }) {
-  const [formData, setFormData] = useState({
-    username: '',
-    actionType: ACTION_TYPES[0],
-    reason: REASONS[0],
-    notes: '',
-  })
-  const [status, setStatus] = useState({ type: null, message: '' })
-  const [isLoading, setIsLoading] = useState(false)
+// SERVER ACTION: Definiert die Funktion, die auf dem Server ausgeführt wird
+async function createAction(formData) {
+  'use server'
   
-  // HINWEIS: Hier müsste der Moderator-Name eigentlich aus einem Auth-Context geladen werden.
-  // Wir verwenden 'Admin' als Standard, wie im SettingsModal simuliert.
-  const moderatorName = 'Admin' 
+  const username = formData.get('username')
+  const actionType = formData.get('actionType')
+  const reason = formData.get('reason')
+  const notes = formData.get('notes')
+  const moderator = formData.get('moderator')
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  const payload = { username, actionType, reason, notes, moderator }
+
+  const result = await saveAction(payload)
+
+  if (result.success) {
+    // Wichtig: Revalidiert alle Pfade, die die Aktionen anzeigen (Dashboard und Logs)
+    revalidatePath('/') 
+    revalidatePath('/logs')
   }
 
-  const handleSubmit = async (e) => {
+  return result
+}
+
+export default function ActionForm() {
+  // useTransition ist das moderne Äquivalent zu isLoading beim Formular-Submit
+  const [isPending, startTransition] = useTransition() 
+  const [status, setStatus] = useState({ type: null, message: '' })
+  
+  // Der Moderator-Name ist jetzt fester Bestandteil des Formulars (könnte später über Auth geladen werden)
+  const moderatorName = 'Admin' 
+
+  const handleSubmit = (e) => {
     e.preventDefault()
     setStatus({ type: null, message: '' })
-    setIsLoading(true)
+    
+    // Startet die Server Action im Hintergrund
+    startTransition(async () => {
+      const formData = new FormData(e.target)
+      const result = await createAction(formData)
 
-    // Daten, die an die API gesendet werden
-    const payload = {
-      ...formData,
-      moderator: moderatorName,
-    }
-
-    try {
-      const response = await fetch('/api/actions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Fehler beim Speichern der Aktion: ${response.statusText}`)
+      if (result.success) {
+        setStatus({ type: 'success', message: `Aktion erfolgreich protokolliert! ID: #${result.action.id}` })
+        e.target.reset() // Formular zurücksetzen
+      } else {
+        setStatus({ type: 'error', message: result.error || 'Speichern fehlgeschlagen.' })
       }
-
-      const result = await response.json()
-      setStatus({ type: 'success', message: `Aktion erfolgreich protokolliert! ID: #${result.id}` })
-      setFormData({ username: '', actionType: ACTION_TYPES[0], reason: REASONS[0], notes: '' })
-      if (onSuccess) {
-        // Ruft die Reload-Funktion des Dashboards auf
-        onSuccess() 
-      }
-
-    } catch (error) {
-      console.error(error)
-      setStatus({ type: 'error', message: 'Speichern fehlgeschlagen. Überprüfe die Server-Logs.' })
-    } finally {
-      setIsLoading(false)
-    }
+    })
   }
 
   const statusStyle = status.type === 'success' 
-    ? 'bg-green-100 text-green-800 border-green-500' 
+    ? 'bg-green-100 text-green-800 border-green-500 dark:bg-green-900/50 dark:text-green-300' 
     : status.type === 'error' 
-    ? 'bg-red-100 text-red-800 border-red-500' 
+    ? 'bg-red-100 text-red-800 border-red-500 dark:bg-red-900/50 dark:text-red-300' 
     : 'hidden'
 
   return (
@@ -100,7 +92,12 @@ export default function ActionForm({ onSuccess }) {
         </div>
       </div>
 
+      {/* Die Form sendet die Daten über die Server Action */}
       <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* Hidden Field für Moderator-Namen */}
+        <input type="hidden" name="moderator" value={moderatorName} />
+
         {/* Moderator Info */}
         <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm flex items-center">
           <Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
@@ -117,8 +114,6 @@ export default function ActionForm({ onSuccess }) {
             type="text"
             name="username"
             id="username"
-            value={formData.username}
-            onChange={handleChange}
             required
             className="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-futuristic-cyan focus:border-futuristic-cyan dark:focus:ring-futuristic-emerald dark:focus:border-futuristic-emerald"
             placeholder="z.B. Mustermann77"
@@ -135,8 +130,7 @@ export default function ActionForm({ onSuccess }) {
             <select
               id="actionType"
               name="actionType"
-              value={formData.actionType}
-              onChange={handleChange}
+              defaultValue={ACTION_TYPES[0]}
               required
               className="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-futuristic-cyan focus:border-futuristic-cyan dark:focus:ring-futuristic-emerald dark:focus:border-futuristic-emerald"
             >
@@ -155,8 +149,7 @@ export default function ActionForm({ onSuccess }) {
             <select
               id="reason"
               name="reason"
-              value={formData.reason}
-              onChange={handleChange}
+              defaultValue={REASONS[0]}
               required
               className="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-futuristic-cyan focus:border-futuristic-cyan dark:focus:ring-futuristic-emerald dark:focus:border-futuristic-emerald"
             >
@@ -177,8 +170,6 @@ export default function ActionForm({ onSuccess }) {
             id="notes"
             name="notes"
             rows="4"
-            value={formData.notes}
-            onChange={handleChange}
             className="mt-1 block w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-futuristic-cyan focus:border-futuristic-cyan dark:focus:ring-futuristic-emerald dark:focus:border-futuristic-emerald"
             placeholder="Zusätzliche Infos, z.B. Chat-Verlauf oder vorherige Vergehen."
           />
@@ -187,10 +178,10 @@ export default function ActionForm({ onSuccess }) {
         {/* Senden-Button */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isPending}
           className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-base font-semibold text-white bg-futuristic-emerald hover:bg-futuristic-emerald/80 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-futuristic-cyan dark:focus:ring-futuristic-emerald disabled:bg-gray-400 dark:disabled:bg-gray-600"
         >
-          {isLoading ? (
+          {isPending ? (
             <span className="flex items-center">
               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
               Speichere...

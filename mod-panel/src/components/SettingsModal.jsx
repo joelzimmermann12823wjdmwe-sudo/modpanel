@@ -1,3 +1,4 @@
+'use client'
 import { useTheme } from 'next-themes'
 import { useState } from 'react'
 import { Sun, Moon, Settings, X, LogIn } from 'lucide-react'
@@ -7,9 +8,8 @@ export default function SettingsModal({ isOpen, onClose }) {
   
   if (!isOpen) return null
 
-  // Simuliere den Moderatoren-Namen (aus dem ursprünglichen Dokument)
+  // Moderator-Name wird jetzt nur simuliert, da die KV-Datenbank keinen Moderator-Namen benötigt
   const [moderatorName, setModeratorName] = useState('Admin') 
-  // HINWEIS: In einem echten Projekt müsste der Name hier aus einem globalen State oder Context geladen werden
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm">
@@ -24,7 +24,6 @@ export default function SettingsModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* 1. Theme-Einstellung (Anforderung 3) */}
         <div className="mb-6 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100 flex items-center">
             {theme === 'light' ? <Sun className="w-5 h-5 mr-2 text-yellow-500" /> : <Moon className="w-5 h-5 mr-2 text-blue-300" />}
@@ -58,7 +57,6 @@ export default function SettingsModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* 2. Allgemeine Einstellungen (Anforderung 7) */}
         <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100 flex items-center">
             <LogIn className="w-5 h-5 mr-2 text-indigo-500" />
