@@ -2,9 +2,7 @@
 import { useState, useTransition } from 'react'
 import { Send, User, MessageSquare, AlertTriangle, CheckCircle, Clock, FileText } from 'lucide-react'
 import { saveAction } from '../lib/data' 
-import { revalidatePath } from 'next/cache' // Muss hier importiert werden, da es in der Server Action verwendet wird
 
-// Optionen
 const ACTION_TYPES = [
   'Mündliche Verwarnung',
   'Warnung',
@@ -22,7 +20,6 @@ const REASONS = [
   'Regelverstoß (Allgemein)',
 ]
 
-// SERVER ACTION: Definiert die Funktion, die auf dem Server ausgeführt wird
 async function createAction(formData) {
   'use server'
   
@@ -36,37 +33,27 @@ async function createAction(formData) {
 
   const result = await saveAction(payload)
 
-  if (result.success) {
-    // Wichtig: Revalidiert alle Pfade, die die Aktionen anzeigen (Dashboard und Logs)
-    revalidatePath('/') 
-    revalidatePath('/logs')
-  }
-
   return result
 }
 
 export default function ActionForm() {
-  // useTransition ist das moderne Äquivalent zu isLoading beim Formular-Submit
   const [isPending, startTransition] = useTransition() 
   const [status, setStatus] = useState({ type: null, message: '' })
-  
-  // Der Moderator-Name ist jetzt fester Bestandteil des Formulars (könnte später über Auth geladen werden)
   const moderatorName = 'Admin' 
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setStatus({ type: null, message: '' })
     
-    // Startet die Server Action im Hintergrund
     startTransition(async () => {
       const formData = new FormData(e.target)
       const result = await createAction(formData)
 
       if (result.success) {
         setStatus({ type: 'success', message: `Aktion erfolgreich protokolliert! ID: #${result.action.id}` })
-        e.target.reset() // Formular zurücksetzen
+        e.target.reset() 
       } else {
-        setStatus({ type: 'error', message: result.error || 'Speichern fehlgeschlagen.' })
+        setStatus({ type: 'error', message: result.error || 'Speichern fehlgeschlagen. KV-Verbindung prüfen!' })
       }
     })
   }
@@ -84,7 +71,6 @@ export default function ActionForm() {
         Neue Moderations-Aktion protokollieren
       </h2>
       
-      {/* Status-Meldung */}
       <div className={`p-4 mb-6 rounded-lg border-l-4 ${statusStyle}`}>
         <div className="flex items-center">
             {status.type === 'success' ? <CheckCircle className="w-5 h-5 mr-2" /> : <AlertTriangle className="w-5 h-5 mr-2" />}
@@ -92,19 +78,15 @@ export default function ActionForm() {
         </div>
       </div>
 
-      {/* Die Form sendet die Daten über die Server Action */}
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* Hidden Field für Moderator-Namen */}
         <input type="hidden" name="moderator" value={moderatorName} />
 
-        {/* Moderator Info */}
         <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm flex items-center">
           <Clock className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
           <span className="text-gray-700 dark:text-gray-300">Aktion als **{moderatorName}** protokollieren</span>
         </div>
 
-        {/* 1. Benutzername */}
         <div>
           <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-1">
             <User className="w-4 h-4 mr-2" />
@@ -121,7 +103,6 @@ export default function ActionForm() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 2. Art der Aktion */}
           <div>
             <label htmlFor="actionType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-1">
               <AlertTriangle className="w-4 h-4 mr-2" />
@@ -140,7 +121,6 @@ export default function ActionForm() {
             </select>
           </div>
 
-          {/* 3. Grund */}
           <div>
             <label htmlFor="reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-1">
               <MessageSquare className="w-4 h-4 mr-2" />
@@ -160,7 +140,6 @@ export default function ActionForm() {
           </div>
         </div>
 
-        {/* 4. Notizen */}
         <div>
           <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center mb-1">
             <FileText className="w-4 h-4 mr-2" />
@@ -175,7 +154,6 @@ export default function ActionForm() {
           />
         </div>
 
-        {/* Senden-Button */}
         <button
           type="submit"
           disabled={isPending}

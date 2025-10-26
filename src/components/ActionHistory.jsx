@@ -15,7 +15,6 @@ const actionStyles = {
 export default function ActionHistory({ actions }) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Filtern der Aktionen basierend auf dem Suchbegriff
   const filteredActions = useMemo(() => {
     if (!searchTerm) {
       return actions
@@ -45,7 +44,6 @@ export default function ActionHistory({ actions }) {
         Protokoll Historie
       </h2>
       
-      {/* Suchleiste */}
       <div className="mb-6 relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
