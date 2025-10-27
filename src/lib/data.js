@@ -1,7 +1,6 @@
 import { MongoClient } from 'mongodb';
 import 'server-only';
 
-// Die korrigierte URI, die den Datenbanknamen enthält, wird von Vercel als MONGODB_URI bereitgestellt.
 const uri = process.env.MONGODB_URI;
 
 let client;
@@ -18,7 +17,6 @@ if (uri) {
 export async function saveAction(actionData) {
     try {
         const client = await clientPromise;
-        // Der Datenbankname 'modpanelDB' wird hier aus der URI gelesen, falls vorhanden
         const db = client.db(client.options.dbName || "modpanelDB"); 
         const collection = db.collection("actions");
 
@@ -41,7 +39,6 @@ export async function getAllActions() {
             .sort({ timestamp: -1 })
             .toArray();
 
-        // Konvertiert das Array in das Key-Value-Objekt-Format
         const result = {};
         actionsArray.forEach(action => {
             result[action.id] = action;
