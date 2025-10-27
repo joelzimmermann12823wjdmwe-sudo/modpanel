@@ -3,7 +3,6 @@ import 'server-only';
 
 /**
  * Speichert eine Mod-Aktion in Vercel KV (Redis).
- * Es werden die Environment Variables KV_REST_API_URL und KV_REST_API_TOKEN benötigt.
  * @param {object} actionData - Daten der Aktion
  */
 export async function saveAction(actionData) {
