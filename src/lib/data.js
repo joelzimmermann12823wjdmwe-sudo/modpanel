@@ -1,22 +1,22 @@
 import { createClient } from '@vercel/kv';
 import 'server-only';
 
-// Überprüfe, ob die notwendigen Variablen für Vercel KV existieren
+// Prüft, ob die permanenten KV-Variablen vorhanden sind
 const isVercelKvAvailable = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
 
 let kv;
 
 if (isVercelKvAvailable) {
-    // 1. PRODUKTIONSLÖSUNG: Nutze Vercel KV (Persistent)
+    // **DAUERHAFTE SPEICHERUNG:** Nutze Vercel KV
     kv = createClient({
         url: process.env.KV_REST_API_URL,
         token: process.env.KV_REST_API_TOKEN,
     });
 } else {
-    // 2. NOTFALL-LÖSUNG (In-Memory): Für lokale Tests oder Build-Fallback
-    console.error("KV-Variablen fehlen. Verwende temporären In-Memory-Speicher!");
+    // **TEMPORÄRE SPEICHERUNG (NOTFALL):** In-Memory-Speicher
+    console.error("SCHWERER FEHLER: KV-Variablen fehlen. Daten sind nur temporär!");
     
-    // Simuliere ein KV-Client-Objekt mit grundlegenden Methoden
+    // Simuliere ein KV-Client-Objekt
     const mockStore = {};
     
     kv = {
