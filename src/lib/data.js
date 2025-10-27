@@ -28,7 +28,6 @@ if (isVercelKvAvailable) {
         },
         // Simuliere hgetall (Abrufen aller Daten)
         hgetall: async (key) => {
-            // Gib einen Dummy-Eintrag aus, falls keine Daten vorhanden sind
             if (key === 'actions') {
                  return mockStore[key] || {
                     'dummy': {
@@ -43,7 +42,7 @@ if (isVercelKvAvailable) {
             }
             return mockStore[key] || null;
         },
-        // Simuliere zrange, get, etc. (falls in Ihrem Code verwendet)
+        // Simuliere zrange, get, etc.
         zrange: async () => [], 
         get: async () => null,
     };

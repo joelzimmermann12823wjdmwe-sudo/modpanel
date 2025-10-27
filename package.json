@@ -16,6 +16,7 @@
     "next-themes": "latest",
     "react": "18.x",
     "react-dom": "18.x",
+    "redis": "^5.9.0",
     "server-only": "latest"
   },
   "devDependencies": {
